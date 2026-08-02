@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Revoke Trust"
+  short_description: "Remove Roslyn trust without changing repository files"
+  default_prompt: "Use $csharp-roslyn-revoke-trust to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

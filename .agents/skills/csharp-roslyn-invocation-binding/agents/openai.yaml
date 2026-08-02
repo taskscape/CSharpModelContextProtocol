@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Invocation Binding"
+  short_description: "Explain overload and argument binding at a call"
+  default_prompt: "Use $csharp-roslyn-invocation-binding to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Symbol At Position"
+  short_description: "Resolve the exact symbol at a source coordinate"
+  default_prompt: "Use $csharp-roslyn-symbol-at-position to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

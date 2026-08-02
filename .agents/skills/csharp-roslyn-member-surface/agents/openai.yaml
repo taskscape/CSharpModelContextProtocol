@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Member Surface"
+  short_description: "Inspect constructors, members, operators, and overloads"
+  default_prompt: "Use $csharp-roslyn-member-surface to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

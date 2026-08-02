@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Dependency Injection Map"
+  short_description: "Map DI registrations with lifetime and confidence"
+  default_prompt: "Use $csharp-roslyn-dependency-injection-map to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Symbol Source"
+  short_description: "Retrieve bounded original C# declarations and bodies"
+  default_prompt: "Use $csharp-roslyn-symbol-source to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

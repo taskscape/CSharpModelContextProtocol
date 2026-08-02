@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Affected Symbols"
+  short_description: "Plan bounded compile-time change impact"
+  default_prompt: "Use $csharp-roslyn-affected-symbols to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

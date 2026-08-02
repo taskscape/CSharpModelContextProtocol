@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Inheritance Graph"
+  short_description: "Trace bounded base, derived, and interface edges"
+  default_prompt: "Use $csharp-roslyn-inheritance-graph to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Diagnostics Delta"
+  short_description: "Compare diagnostics before and after C# edits"
+  default_prompt: "Use $csharp-roslyn-diagnostics-delta to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

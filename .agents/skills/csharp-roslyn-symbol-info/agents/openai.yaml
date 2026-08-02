@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Symbol Info"
+  short_description: "Resolve exact C# symbol identity and contracts"
+  default_prompt: "Use $csharp-roslyn-symbol-info to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

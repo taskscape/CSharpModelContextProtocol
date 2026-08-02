@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Workspace Health"
+  short_description: "Assess Roslyn workspace completeness and freshness"
+  default_prompt: "Use $csharp-roslyn-workspace-health to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

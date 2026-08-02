@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Solution Overview"
+  short_description: "Inspect C# solution structure with Roslyn"
+  default_prompt: "Use $csharp-roslyn-solution-overview to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

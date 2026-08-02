@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Construction Options"
+  short_description: "Find accessible ways to construct or resolve a type"
+  default_prompt: "Use $csharp-roslyn-construction-options to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

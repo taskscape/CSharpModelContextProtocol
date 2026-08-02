@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Semantic Search"
+  short_description: "Find C# symbols by semantic concept and kind"
+  default_prompt: "Use $csharp-roslyn-semantic-search to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

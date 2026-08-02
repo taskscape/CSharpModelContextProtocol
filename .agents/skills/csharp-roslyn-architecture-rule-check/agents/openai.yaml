@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Architecture Rules"
+  short_description: "Check semantic namespace layering constraints"
+  default_prompt: "Use $csharp-roslyn-architecture-rule-check to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

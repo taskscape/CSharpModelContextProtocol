@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Trust Solution"
+  short_description: "Authorize Roslyn evaluation for a repository"
+  default_prompt: "Use $csharp-roslyn-trust-solution to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

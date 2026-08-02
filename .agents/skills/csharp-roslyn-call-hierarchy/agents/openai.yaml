@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Call Hierarchy"
+  short_description: "Trace bounded C# callers and callees"
+  default_prompt: "Use $csharp-roslyn-call-hierarchy to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

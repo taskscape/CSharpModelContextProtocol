@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Stack Trace Resolver"
+  short_description: "Resolve .NET stack frames to C# source symbols"
+  default_prompt: "Use $csharp-roslyn-resolve-stack-trace to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

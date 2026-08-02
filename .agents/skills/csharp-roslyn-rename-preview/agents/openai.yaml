@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Rename Preview"
+  short_description: "Preview safe C# rename or signature edits"
+  default_prompt: "Use $csharp-roslyn-rename-preview to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

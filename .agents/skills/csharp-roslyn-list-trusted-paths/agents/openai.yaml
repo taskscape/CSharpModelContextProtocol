@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Trusted Paths"
+  short_description: "Review session and persistent Roslyn trust roots"
+  default_prompt: "Use $csharp-roslyn-list-trusted-paths to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

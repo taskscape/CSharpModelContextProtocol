@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn API Compatibility"
+  short_description: "Compare public APIs against JSON or DLL baselines"
+  default_prompt: "Use $csharp-roslyn-api-compatibility to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

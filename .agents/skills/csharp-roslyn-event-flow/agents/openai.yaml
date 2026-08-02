@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Event Flow"
+  short_description: "Trace event subscriptions, removals, and raises"
+  default_prompt: "Use $csharp-roslyn-event-flow to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"

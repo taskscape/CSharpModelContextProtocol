@@ -1,0 +1,9 @@
+interface:
+  display_name: "Roslyn Unused Symbol Audit"
+  short_description: "Review bounded C# dead-code candidates safely"
+  default_prompt: "Use $csharp-roslyn-unused-symbol-audit to perform the requested compiler-accurate C# analysis."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "csharp_roslyn"
+      description: "Local read-only Roslyn code-intelligence MCP server"
