@@ -16,6 +16,7 @@ This is preferable to embedding an entire solution or relying only on text searc
 - `tests\CSharpMcp.Server.Tests`: real `MSBuildWorkspace` fixture tests for symbol resolution, references, and implementations.
 - `.agents\skills`: 34 canonical portable Agent Skills, one for every exposed MCP tool.
 - `.claude\skills`: thin Claude Code adapters that delegate to the canonical skill bodies.
+- `installer\CSharpMCP.iss`: per-user Inno Setup package for the self-contained Windows server.
 - `scripts\Install-RoslynSkills.ps1`: user- or project-scoped installer for Codex, Claude Code, or both.
 
 Package roles are documented in `Directory.Packages.props`. The server uses the stable `ModelContextProtocol` 2.0.0 release, the compatible Microsoft Extensions 10.0.10 hosting line, and Roslyn 5.6.0.
@@ -38,6 +39,78 @@ dotnet restore .\CSharpMCP.slnx
 dotnet tool restore
 dotnet build .\CSharpMCP.slnx --no-restore -m:1 /p:BuildInParallel=false /p:UseSharedCompilation=false
 dotnet test .\CSharpMCP.slnx --no-build -m:1
+```
+
+## Windows installer
+
+The Inno Setup package is the recommended local-machine installation path for Windows. It publishes an untrimmed, self-contained `win-x64` server, packages the complete MCP runtime, the optional ApiCompat manifest, configuration metadata, all 34 canonical skills, registration helpers, and this README.
+
+Build and verify the installer with one command:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Build-Installer.ps1
+```
+
+The build follows the established local Inno Setup pattern used by the other Taskscape desktop projects: it runs the authoritative repository tests, safely resets only `installer\artifacts`, publishes the server self-contained, dry-runs client discovery, locates `ISCC.exe`, compiles the setup definition, and performs an isolated install/uninstall smoke test with post-install registration disabled. Use `-SkipTests` only after the same source revision has already passed `Test-CSharpMcp.ps1`; use `-SkipInstallerSmokeTest` only when the package itself has already passed on the same artifact.
+
+The generated installer is:
+
+```text
+C:\Projects\CSharpMCP\installer\output\CSharpMCP-2.0.0-win-x64-Setup.exe
+```
+
+Normal CSharpMCP installation uses `%LOCALAPPDATA%\Programs\CSharpMCP`. The application payload and client configuration remain per-user. Before files are installed or either client is registered, Setup checks every common `dotnet.exe` location for the SDK version pinned by `global.json` (currently 10.0.302). If it is missing, Setup:
+
+1. Downloads the official Microsoft x64 SDK installer from `builds.dotnet.microsoft.com` on an Inno Setup progress page.
+2. Rejects the download unless its pinned SHA-256 matches the release artifact.
+3. Requests UAC elevation only for Microsoft's system-wide SDK installer.
+4. Runs that installer as `/install /quiet /norestart`, accepting Microsoft's success code `0` and treating `3010` as a required restart.
+5. Queries `dotnet --list-sdks` again and proceeds only after the required SDK and MSBuild files are visible.
+
+The Microsoft SDK installation itself is silent, but Windows still displays a UAC consent or credential prompt because the supported installer is system-wide. Declining UAC, losing network access, failing checksum validation, or failing post-install detection stops CSharpMCP before its registration helpers run. Machines that already have the pinned SDK do not download anything and do not request elevation.
+
+After the prerequisite gate, Setup performs these operations:
+
+1. Installs the complete self-contained server under `server`.
+2. Writes the resolved stdio command and selected tool catalog to `config\installation.ini`.
+3. Deploys canonical skill packages inside the application directory.
+4. Copies every missing skill into both `%USERPROFILE%\.agents\skills` for Codex and `%USERPROFILE%\.claude\skills` for Claude Code. A skill is considered installed only when its `SKILL.md` exists; complete existing skills are preserved byte-for-byte, while incomplete directories are populated without deleting unrelated files.
+5. Looks for `codex` and `claude` on the current user's `PATH`.
+6. Runs `mcp get csharp_roslyn` first and preserves an existing registration unchanged.
+7. When no registration exists, adds a user-level stdio registration pointing directly to the installed self-contained executable.
+8. Writes exact outcomes to `config\registration-state.json`. A missing client or failed registration is non-fatal and can be repaired later.
+
+The optional setup task **Enable optional API compatibility and architecture tools** sets `CSHARPMCP_TOOL_GROUPS=all` for newly created registrations and attempts to restore Microsoft's ApiCompat tool through the installed manifest. The default installation exposes the focused 32-tool catalog and does not require the optional tool restore.
+
+The server carries its own .NET runtime, but Roslyn still needs the compatible SDK/MSBuild toolset installed by the prerequisite gate to evaluate SDK-style solutions. Private feeds, workloads, proprietary references, analyzers, and source-generator prerequisites remain repository-specific.
+
+For unattended installation:
+
+```powershell
+.\installer\output\CSharpMCP-2.0.0-win-x64-Setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
+```
+
+Add `/TASKS="alltools"` to enable both optional tool groups. `/SKIPPOSTINSTALL=1` is reserved for package verification and installs files without copying skills or changing client registrations. Unattended deployment still requires an already elevated process or an interactive UAC response when the SDK is absent; `/VERYSILENT` cannot and should not bypass Windows elevation policy.
+
+Uninstall removes only client registrations that were originally created by the installer and still point to its installed executable. Pre-existing or subsequently changed registrations are preserved. User skill copies are also retained because they may have been customized after installation.
+
+The packaging definition is [installer/CSharpMCP.iss](installer/CSharpMCP.iss). Client behavior is implemented and independently testable in [Register-CSharpMcpClients.ps1](scripts/Register-CSharpMcpClients.ps1), [Unregister-CSharpMcpClients.ps1](scripts/Unregister-CSharpMcpClients.ps1), [Test-InstallerAssets.ps1](scripts/Test-InstallerAssets.ps1), and [Test-InstallerPackage.ps1](scripts/Test-InstallerPackage.ps1).
+
+### Automated GitHub releases
+
+`VERSION` is the authoritative installer release version. Every push to `main` runs `.github/workflows/publish-installer.yml`. When the corresponding `v<VERSION>` release does not exist, the Windows runner executes the complete installer build and verification process, creates a SHA-256 manifest, and publishes both files on a GitHub Release. Subsequent pushes with the same version finish successfully without creating duplicates; a draft left by an interrupted run is resumed after its tag is verified against the pushed commit.
+
+To publish a new version:
+
+1. Change `VERSION` to a new stable three-component value such as `2.1.0`.
+2. Commit the version change together with the intended release source.
+3. Push that commit to `main`.
+4. Confirm that the `v2.1.0` GitHub Release contains both `CSharpMCP-2.1.0-win-x64-Setup.exe` and its `.sha256` manifest.
+
+The workflow uses only the repository-provided `GITHUB_TOKEN` with `contents: write`; no release secret is required. Run the release contract locally with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Test-ReleaseWorkflow.ps1
 ```
 
 ### Tool coverage
@@ -90,6 +163,8 @@ dotnet build .\CSharpMCP.slnx --configuration Release -m:1 /p:BuildInParallel=fa
 ## Connect Codex
 
 `AGENTS.md` instructions tell Codex when and why to use Roslyn, but they do not install or expose an MCP server. Register `csharp_roslyn` once on the Codex host, restart the active Codex client, and keep repository-specific usage rules in `AGENTS.md`.
+
+The Windows installer described above performs this registration automatically when `csharp_roslyn` is not already configured. The manual options below are primarily for source checkouts and custom deployments.
 
 Codex desktop, Codex CLI, and the IDE extension share MCP configuration when they use the same Codex host. The server is local and uses stdio, so it must be registered with a command and DLL path rather than an HTTP URL. See the [official Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp.md).
 

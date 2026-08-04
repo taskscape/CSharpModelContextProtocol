@@ -31,6 +31,20 @@ try
         throw 'Roslyn skill validation failed.'
     }
 
+    Write-Host 'Validating installer assets and client-registration contracts...'
+    & (Join-Path $PSScriptRoot 'Test-InstallerAssets.ps1')
+    if (-not $?)
+    {
+        throw 'Installer asset validation failed.'
+    }
+
+    Write-Host 'Validating versioned GitHub release automation...'
+    & (Join-Path $PSScriptRoot 'Test-ReleaseWorkflow.ps1')
+    if (-not $?)
+    {
+        throw 'GitHub release workflow validation failed.'
+    }
+
     Write-Host 'Restoring solution packages...'
     Invoke-DotNet -DotNetArguments @('restore', $solutionPath)
 

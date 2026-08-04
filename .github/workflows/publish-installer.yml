@@ -1,0 +1,165 @@
+name: Publish Windows installer
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: csharpmcp-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish versioned installer
+    runs-on: windows-2025
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out the release revision
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install the pinned .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Resolve and validate the release version
+        id: version
+        shell: pwsh
+        run: |
+          $version = (Get-Content -LiteralPath './VERSION' -Raw).Trim()
+          if ($version -notmatch '^\d+\.\d+\.\d+$')
+          {
+              throw "VERSION must contain a stable three-component version, but was '$version'."
+          }
+
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "tag=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Determine whether the version needs publishing
+        id: release_state
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+          $releaseJson = & gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --json isDraft,targetCommitish 2>$null
+          $releaseExitCode = $LASTEXITCODE
+
+          if ($releaseExitCode -eq 0)
+          {
+              $release = $releaseJson | ConvertFrom-Json
+              $state = if ($release.isDraft) { 'resume' } else { 'skip' }
+              if ($state -eq 'resume' -and $release.targetCommitish -ne $env:GITHUB_SHA)
+              {
+                  throw "Draft release $env:RELEASE_TAG targets $($release.targetCommitish) instead of release revision $env:GITHUB_SHA."
+              }
+          }
+          else
+          {
+              $state = 'create'
+          }
+
+          if ($state -ne 'skip')
+          {
+              git show-ref --verify --quiet "refs/tags/$env:RELEASE_TAG"
+              if ($LASTEXITCODE -eq 0)
+              {
+                  $tagCommit = (git rev-list -n 1 $env:RELEASE_TAG).Trim()
+                  if ($tagCommit -ne $env:GITHUB_SHA)
+                  {
+                      throw "Tag $env:RELEASE_TAG points to $tagCommit instead of release revision $env:GITHUB_SHA."
+                  }
+              }
+          }
+
+          "state=$state" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "Release state for $env:RELEASE_TAG: $state"
+
+      - name: Build and verify the installer
+        if: steps.release_state.outputs.state != 'skip'
+        shell: pwsh
+        run: |
+          ./scripts/Build-Installer.ps1 -Version '${{ steps.version.outputs.version }}'
+
+      - name: Create the checksum manifest
+        if: steps.release_state.outputs.state != 'skip'
+        id: artifact
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $installer = [System.IO.Path]::GetFullPath("./installer/output/CSharpMCP-$version-win-x64-Setup.exe")
+          if (-not (Test-Path -LiteralPath $installer -PathType Leaf))
+          {
+              throw "The verified installer was not produced at '$installer'."
+          }
+
+          $checksum = "$installer.sha256"
+          $digest = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$digest  $([System.IO.Path]::GetFileName($installer))" | Set-Content -LiteralPath $checksum -Encoding ascii
+
+          "installer=$installer" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "checksum=$checksum" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Create or resume the draft release
+        if: steps.release_state.outputs.state != 'skip'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if ('${{ steps.release_state.outputs.state }}' -eq 'create')
+          {
+              git show-ref --verify --quiet "refs/tags/$env:RELEASE_TAG"
+              if ($LASTEXITCODE -eq 0)
+              {
+                  gh release create $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --verify-tag --draft --generate-notes --title "CSharpMCP $env:RELEASE_VERSION"
+              }
+              else
+              {
+                  gh release create $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --draft --generate-notes --title "CSharpMCP $env:RELEASE_VERSION"
+              }
+          }
+
+          gh release upload $env:RELEASE_TAG '${{ steps.artifact.outputs.installer }}' '${{ steps.artifact.outputs.checksum }}' --repo $env:GITHUB_REPOSITORY --clobber
+          gh release edit $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --draft=false
+
+      - name: Verify the published release
+        if: steps.release_state.outputs.state != 'skip'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          $release = gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --json isDraft,assets | ConvertFrom-Json
+          if ($release.isDraft)
+          {
+              throw "Release $env:RELEASE_TAG is still a draft."
+          }
+
+          $expectedAssets = @(
+              'CSharpMCP-${{ steps.version.outputs.version }}-win-x64-Setup.exe',
+              'CSharpMCP-${{ steps.version.outputs.version }}-win-x64-Setup.exe.sha256'
+          )
+          $publishedAssets = @($release.assets | ForEach-Object { $_.name })
+          foreach ($expectedAsset in $expectedAssets)
+          {
+              if ($expectedAsset -notin $publishedAssets)
+              {
+                  throw "Release $env:RELEASE_TAG is missing '$expectedAsset'."
+              }
+          }
+
+      - name: Report an existing release
+        if: steps.release_state.outputs.state == 'skip'
+        shell: pwsh
+        run: Write-Host 'Release ${{ steps.version.outputs.tag }} already exists; no duplicate release was created.'

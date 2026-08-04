@@ -3,4 +3,5 @@ obj/
 .vs/
 TestResults/
 *.user
-
+installer/artifacts/
+installer/output/
