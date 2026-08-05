@@ -72,13 +72,14 @@ The Microsoft SDK installation itself is silent, but Windows still displays a UA
 After the prerequisite gate, Setup performs these operations:
 
 1. Installs the complete self-contained server under `server`.
-2. Writes the resolved stdio command and selected tool catalog to `config\installation.ini`.
-3. Deploys canonical skill packages inside the application directory.
-4. Copies every missing skill into both `%USERPROFILE%\.agents\skills` for Codex and `%USERPROFILE%\.claude\skills` for Claude Code. A skill is considered installed only when its `SKILL.md` exists; complete existing skills are preserved byte-for-byte, while incomplete directories are populated without deleting unrelated files.
-5. Looks for `codex` and `claude` on the current user's `PATH`.
-6. Runs `mcp get csharp_roslyn` first and preserves an existing registration unchanged.
-7. When no registration exists, adds a user-level stdio registration pointing directly to the installed self-contained executable.
-8. Writes exact outcomes to `config\registration-state.json`. A missing client or failed registration is non-fatal and can be repaired later.
+2. Creates the per-user runtime log directory under `%LOCALAPPDATA%\CSharpMCP\logs`.
+3. Writes the resolved stdio command and selected tool catalog to `config\installation.ini`.
+4. Deploys canonical skill packages inside the application directory.
+5. Copies every missing skill into both `%USERPROFILE%\.agents\skills` for Codex and `%USERPROFILE%\.claude\skills` for Claude Code. A skill is considered installed only when its `SKILL.md` exists; complete existing skills are preserved byte-for-byte, while incomplete directories are populated without deleting unrelated files.
+6. Looks for `codex` and `claude` on the current user's `PATH`.
+7. Runs `mcp get csharp_roslyn` first and preserves an existing registration unchanged.
+8. When no registration exists, adds a user-level stdio registration pointing directly to the installed self-contained executable.
+9. Writes exact outcomes to `config\registration-state.json`. A missing client or failed registration is non-fatal and can be repaired later.
 
 The optional setup task **Enable optional API compatibility and architecture tools** sets `CSHARPMCP_TOOL_GROUPS=all` for newly created registrations and attempts to restore Microsoft's ApiCompat tool through the installed manifest. The default installation exposes the focused 32-tool catalog and does not require the optional tool restore.
 
@@ -263,7 +264,11 @@ Project-scoped MCP configuration is loaded only for trusted projects. This optio
 - If Codex reports that `csharp_roslyn` is not discoverable, verify the DLL exists, run the one-command test process, and check for a second project-level configuration that disables or filters the server.
 - If analysis reports an untrusted workspace, call `trust_solution`; registration alone does not authorize repository-controlled MSBuild evaluation.
 
-The server writes logs to stderr because stdout is reserved for MCP protocol messages.
+### Runtime logs
+
+The server writes operational logs to stderr because stdout is reserved for MCP protocol messages. It also writes durable daily log files to `%LOCALAPPDATA%\CSharpMCP\logs` by default. Files are named `csharpmcp-YYYYMMDD.log`; a new file is opened each day, oversized files receive a numeric suffix, and Serilog removes files older than 30 days. Multiple MCP server processes can safely append to the same daily file.
+
+Set `CSHARPMCP_LOG_DIRECTORY` in the MCP server environment to use a different absolute directory. This is useful for portable installations and isolated test runs. The configured user must be able to create and write to that directory; a logging initialization failure stops server startup rather than silently discarding runtime diagnostics.
 
 Before the first analysis of a repository, call `trust_solution` with its solution, project, or repository path. Session trust is the default; pass `persist: true` only for repositories you intend to authorize across server restarts. Workspace loading evaluates repository-controlled MSBuild files and can load configured analyzers and source generators, so analysis calls reject untrusted paths. Use `list_trusted_paths` and `revoke_trust` to audit or remove decisions.
 

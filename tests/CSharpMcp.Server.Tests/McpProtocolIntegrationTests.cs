@@ -28,7 +28,8 @@ public sealed class McpProtocolIntegrationTests
             Arguments = [serverAssemblyPath],
             EnvironmentVariables = new Dictionary<string, string?>
             {
-                ["CSHARPMCP_TOOL_GROUPS"] = "all"
+                ["CSHARPMCP_TOOL_GROUPS"] = "all",
+                ["CSHARPMCP_LOG_DIRECTORY"] = GetTestLogDirectory()
             },
             ShutdownTimeout = TimeSpan.FromSeconds(10)
         });
@@ -101,6 +102,10 @@ public sealed class McpProtocolIntegrationTests
             Name = "csharp-roslyn-integration-test",
             Command = "dotnet",
             Arguments = [serverAssemblyPath],
+            EnvironmentVariables = new Dictionary<string, string?>
+            {
+                ["CSHARPMCP_LOG_DIRECTORY"] = GetTestLogDirectory()
+            },
             ShutdownTimeout = TimeSpan.FromSeconds(10)
         });
 
@@ -209,6 +214,11 @@ public sealed class McpProtocolIntegrationTests
             progress.Values,
             first => Assert.Equal(0, first.Progress),
             last => Assert.Equal(1, last.Progress));
+    }
+
+    private static string GetTestLogDirectory()
+    {
+        return Path.Combine(Path.GetTempPath(), "CSharpMCP.Tests", "ServerLogs");
     }
 
     /// <summary>

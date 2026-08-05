@@ -6,15 +6,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
+using Serilog;
 
 MsBuildBootstrap.Register();
 
 var builder = Host.CreateApplicationBuilder(args);
 var toolCatalogProfile = ToolCatalogProfile.FromEnvironment();
+var logDirectory = ServerLogging.ResolveLogDirectory();
 
 // MCP uses stdout for protocol frames, so all operational logging must stay on stderr.
 builder.Logging.ClearProviders();
-builder.Logging.AddConsole(options => options.LogToStandardErrorThreshold = LogLevel.Trace);
+builder.Services.AddSerilog((_, configuration) => ServerLogging.Configure(configuration, logDirectory));
 
 builder.Services.AddSingleton<SolutionWorkspaceCache>();
 builder.Services.AddSingleton<SolutionTrustStore>();
@@ -48,4 +50,13 @@ builder.Services
     .WithStdioServerTransport()
     .WithTools<RoslynTools>();
 
-await builder.Build().RunAsync().ConfigureAwait(false);
+using var host = builder.Build();
+host.Services
+    .GetRequiredService<ILoggerFactory>()
+    .CreateLogger("CSharpMcp.Server")
+    .LogInformation(
+        "CSharpMCP logging initialized at {LogDirectory}; files older than {RetentionDays} days are removed",
+        logDirectory,
+        ServerLogging.RetentionDays);
+
+await host.RunAsync().ConfigureAwait(false);

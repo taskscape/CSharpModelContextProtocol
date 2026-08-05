@@ -95,7 +95,7 @@ Name: "alltools"; Description: "Enable optional API compatibility and architectu
 
 [Dirs]
 Name: "{app}\config"
-Name: "{app}\logs"
+Name: "{localappdata}\CSharpMCP\logs"
 
 [Files]
 Source: "{#PublishDir}\*"; DestDir: "{app}\server"; Flags: ignoreversion recursesubdirs createallsubdirs restartreplace
@@ -128,9 +128,10 @@ Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile
 [UninstallDelete]
 Type: files; Name: "{app}\config\registration-state.json"
 Type: files; Name: "{app}\config\installation.ini"
-Type: dirifempty; Name: "{app}\logs"
 Type: dirifempty; Name: "{app}\config"
 Type: dirifempty; Name: "{app}"
+Type: dirifempty; Name: "{localappdata}\CSharpMCP\logs"
+Type: dirifempty; Name: "{localappdata}\CSharpMCP"
 
 [Code]
 var
