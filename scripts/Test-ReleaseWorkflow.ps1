@@ -39,6 +39,9 @@ $requiredWorkflowEvidence = @(
     'gh release create',
     'gh release upload',
     'gh release edit',
+    '$tagExists = $LASTEXITCODE -eq 0',
+    'Write-Host "Release state for ${env:RELEASE_TAG}: $state"',
+    '$global:LASTEXITCODE = 0',
     'CSharpMCP-${{ steps.version.outputs.version }}-win-x64-Setup.exe.sha256'
 )
 

@@ -71,7 +71,9 @@ jobs:
           if ($state -ne 'skip')
           {
               git show-ref --verify --quiet "refs/tags/$env:RELEASE_TAG"
-              if ($LASTEXITCODE -eq 0)
+              $tagExists = $LASTEXITCODE -eq 0
+
+              if ($tagExists)
               {
                   $tagCommit = (git rev-list -n 1 $env:RELEASE_TAG).Trim()
                   if ($tagCommit -ne $env:GITHUB_SHA)
@@ -82,7 +84,9 @@ jobs:
           }
 
           "state=$state" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          Write-Host "Release state for $env:RELEASE_TAG: $state"
+          Write-Host "Release state for ${env:RELEASE_TAG}: $state"
+
+          $global:LASTEXITCODE = 0
 
       - name: Build and verify the installer
         if: steps.release_state.outputs.state != 'skip'
